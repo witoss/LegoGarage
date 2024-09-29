@@ -8,6 +8,7 @@ from ev3dev2.control.rc_tank import RemoteControlledTank
 from ev3dev2.sensor.lego import ColorSensor
 from time import sleep
 from ev3dev2.sound import Sound
+from ev3dev2.display import Display
 
 class RemoteControlledTank(MoveTank):
     def __init__(self, left_motor_port, right_motor_port, polarity='inversed', speed=400, channel=1):
@@ -25,9 +26,17 @@ class RemoteControlledTank(MoveTank):
         logging.addLevelName(logging.ERROR, "\033[91m  %s\033[0m" % logging.getLevelName(logging.ERROR))
         logging.addLevelName(logging.WARNING, "\033[91m%s\033[0m" % logging.getLevelName(logging.WARNING))
         color_sensor = ColorSensor()
+        lcd = Display()
         
+        state = "forward"
+        color_sensor.calibrate_white
+
         while(True):
-            color_sensor.calibrate_white
+            
+            lcd.clear()
+            lcd.draw.rectangle((1, 1, 10, 10), fill='black')
+            # Update display to show rectangle
+            lcd.update()
             color = color_sensor.color
             colorRgb = color_sensor.rgb
 
@@ -43,13 +52,25 @@ class RemoteControlledTank(MoveTank):
             log.info(g)
             log.info(b)
 
-            if(g > 10):
+            if(r < 10 and g < 10 and b < 10):
+                log.info("one")
                 self.make_move(one=True, two=left_motor, three=self.speed_sp)
                 self.make_move(one=True, two=right_motor, three=self.speed_sp)
+            else:
+                log.info("two")
+                while(r > 40 or g > 40 or b > 40):
+                    color = color_sensor.color
+                    colorRgb = color_sensor.rgb
 
-            if(g < 10):
-                self.make_move(one=False, two=left_motor, three=self.speed_sp)
-                self.make_move(one=False, two=right_motor, three=self.speed_sp)
+                    r = colorRgb[0]
+                    g = colorRgb[1]
+                    b = colorRgb[2]
+
+                    log.info("three")
+                    self.make_move(one=False, two=right_motor, three=self.speed_sp)
+                    self.make_move(one=True, two=left_motor, three=self.speed_sp)
+                    sleep(1)
+            sleep(1)
 
     def make_move(self, one, two, three):
         if one:
